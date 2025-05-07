@@ -1,10 +1,11 @@
 import { Connection, VersionedTransaction, Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import {getAccount, getAssociatedTokenAddress, getMint} from "@solana/spl-token"
 import bs58 from "bs58";
 import { logToFile } from '../utils/logger';
 
 const RPC_ENDPOINT = "https://proud-wider-mound.solana-mainnet.quiknode.pro/2a32ab5b5b591114ea720bd403447b2a80d58436/";
 const PUMPFUN_URL = 'https://pumpportal.fun/api/trade-local';
-const TOKEN_ADRESS = '5LJMJyR8MtAkbtpf8kFUV7S9oFG3xaGDdcnFxYt9pump';
+const TOKEN_ADRESS = '4y9E3tJpGNzRr1592oWTPECgyp2VDSc1Bf3DqAm5FZsK';
 const POOL = "raydium";//"pump", "raydium", "pump-amm" or "auto"
 
 const web3Connection = new Connection(
@@ -77,12 +78,42 @@ export async function sellToken(privateKey: string, publicKey: string, amount: n
 export async function checkBalance(privateKey: string) {
     try {
         const wallet = await Keypair.fromSecretKey(bs58.decode(privateKey));
-        const balance = await web3Connection.getBalance(new PublicKey(wallet.publicKey));
-        console.log(`Wallet ${wallet.publicKey} balance: ${(balance) / LAMPORTS_PER_SOL} SOL`);
+        const balanceSol = await web3Connection.getBalance(new PublicKey(wallet.publicKey));
+
+        const tokenAddress = new PublicKey(TOKEN_ADRESS);
+        const ata = await getAssociatedTokenAddress(tokenAddress, wallet.publicKey);
+        const accountInfo = await getAccount(web3Connection, ata);
+        const mintInfo = await getMint(web3Connection, tokenAddress);
+        const decimals = mintInfo.decimals;
+        const balanceSpl = Number(accountInfo.amount) / (10 ** decimals);
+        console.log(`Wallet ${wallet.publicKey}\tSOL balance: ${(balanceSol) / LAMPORTS_PER_SOL} SOL\tSPL balance: ${balanceSpl}`);
     } catch (error) {
         console.log(error);
     }
 }
+
+export async function sellByPercentage(percent: number, privateKey: string, publicKey: string) {
+    try {
+        const wallet = Keypair.fromSecretKey(bs58.decode(privateKey));
+        const tokenAddress = new PublicKey(TOKEN_ADRESS);
+        const ata = await getAssociatedTokenAddress(tokenAddress, wallet.publicKey);
+        const accountInfo = await getAccount(web3Connection, ata);
+        const mintInfo = await getMint(web3Connection, tokenAddress);
+        const decimals = mintInfo.decimals;
+        const balanceSpl = Number(accountInfo.amount) / (10 ** decimals);
+        const finalAmountToSell = Math.floor(balanceSpl * (percent/100));
+
+        if (finalAmountToSell <= 0) {
+            console.log(`Недостаточно токенов для продажи ${percent}% — рассчитано к продаже: ${finalAmountToSell}`);
+            return;
+        }
+
+        await sellToken(privateKey, publicKey, finalAmountToSell);
+    } catch (error) {
+        console.log(error);
+    }
+}
+
 
 
 

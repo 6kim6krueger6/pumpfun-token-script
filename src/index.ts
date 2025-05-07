@@ -1,7 +1,7 @@
-import {buyToken, sellToken, checkBalance} from  "./solana/actions"
+import {buyToken, sellToken, checkBalance, sellByPercentage} from  "./solana/actions"
 import { parseCSV } from "./utils/csvparser";
 import Wallet from "./types/wallet";
-import { select, input } from '@inquirer/prompts';
+import { select, input , confirm} from '@inquirer/prompts';
 import path from 'path';
 
 
@@ -38,6 +38,9 @@ async function execute() {
 
     let selectedWallets: Wallet[] = [];
 
+    let sellByPercent;
+    let percent;
+
     if (walletChoice === 'one') {
         const indexInput = await input({ message: 'Введите индекс кошелька:' });
         const index = Number(indexInput.trim());
@@ -45,6 +48,14 @@ async function execute() {
         if (!wallet) {
             console.error(`Ошибка: Кошелек с индексом ${index} не найден.`);
             process.exit(1);
+        }
+        if (action === 'sell') {
+            const sellByPercent = await confirm({ message: 'Продать по процентам?'});
+            if (sellByPercent) {
+                const percent = await input({ message: 'Введите процент токенов для ародажи (%):' });
+                await sellByPercentage(Number(percent),wallet.privateKey, wallet.publicKey);
+                process.exit(1);  
+            }
         }
         selectedWallets = [wallet];
     }
@@ -86,6 +97,7 @@ async function execute() {
     console.log(`Вы выбрали действие: ${action === 'buy' ? 'Купить' : 'Продать'}`);
     console.log(`Индексы выбранных кошельков: ${selectedWallets.map(w => w.index).join(', ')}`);
     console.log(`Сумма: ${amount}`);
+
 
     for (const wallet of selectedWallets) {
         if (action === 'buy') {
