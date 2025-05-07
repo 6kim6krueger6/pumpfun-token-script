@@ -1,4 +1,4 @@
-import {buyToken, sellToken} from  "./solana/actions"
+import {buyToken, sellToken, checkBalance} from  "./solana/actions"
 import { parseCSV } from "./utils/csvparser";
 import Wallet from "./types/wallet";
 import { select, input } from '@inquirer/prompts';
@@ -23,6 +23,7 @@ async function execute() {
         choices: [
             { name: 'Купить', value: 'buy' },
             { name: 'Продать', value: 'sell' },
+            { name: 'Посмотреть баланс', value: 'balances'}
         ],
     });
 
@@ -65,6 +66,13 @@ async function execute() {
 
     if (walletChoice === 'all') {
         selectedWallets = wallets;
+    }
+
+    if(action === 'balances'){
+        for(const wallet of selectedWallets){
+            await checkBalance(wallet.privateKey);
+        }
+        process.exit(1);
     }
 
     const amountInput = await input({ message: 'Введите сумму (amount):' });

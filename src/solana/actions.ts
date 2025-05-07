@@ -1,4 +1,4 @@
-import { Connection, VersionedTransaction, Keypair } from "@solana/web3.js";
+import { Connection, VersionedTransaction, Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 import { logToFile } from '../utils/logger';
 
@@ -71,6 +71,16 @@ export async function sellToken(privateKey: string, publicKey: string, amount: n
     } else {
         console.log(response.statusText);
         await logToFile(`SELL ERROR | Wallet: ${publicKey} | Amount: ${amount} | Error: ${response.statusText}`);
+    }
+}
+
+export async function checkBalance(privateKey: string) {
+    try {
+        const wallet = await Keypair.fromSecretKey(bs58.decode(privateKey));
+        const balance = await web3Connection.getBalance(new PublicKey(wallet.publicKey));
+        console.log(`Wallet ${wallet.publicKey} balance: ${(balance) / LAMPORTS_PER_SOL} SOL`);
+    } catch (error) {
+        console.log(error);
     }
 }
 
