@@ -2,6 +2,7 @@ import { Connection, VersionedTransaction, Keypair, LAMPORTS_PER_SOL, PublicKey 
 import {getAccount, getAssociatedTokenAddress, getMint} from "@solana/spl-token"
 import bs58 from "bs58";
 import { logToFile } from '../utils/logger';
+import fetch from 'node-fetch';  // Подключаем fetch
 
 const RPC_ENDPOINT = "https://proud-wider-mound.solana-mainnet.quiknode.pro/2a32ab5b5b591114ea720bd403447b2a80d58436/";
 const PUMPFUN_URL = 'https://pumpportal.fun/api/trade-local';
@@ -13,7 +14,7 @@ const web3Connection = new Connection(
     'confirmed',
 );
 
-export async function buyToken(privateKey: string, publicKey: string, amount: number) {
+export async function buyToken(privateKey: string, publicKey: string, amount: number, isSol: boolean) {
     const response = await fetch(PUMPFUN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -21,7 +22,7 @@ export async function buyToken(privateKey: string, publicKey: string, amount: nu
             publicKey,
             action: "buy",
             mint: TOKEN_ADRESS,
-            denominatedInSol: "true",
+            denominatedInSol: isSol.toString(),
             amount,
             slippage: 10,
             priorityFee: 0.00001,
@@ -109,6 +110,28 @@ export async function sellByPercentage(percent: number, privateKey: string, publ
         }
 
         await sellToken(privateKey, publicKey, finalAmountToSell);
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+export async function buyByPercentage(percent: number , privateKey: string, publicKey: string) {
+    try {
+        const wallet = Keypair.fromSecretKey(bs58.decode(privateKey));
+        const tokenAddress = new PublicKey(TOKEN_ADRESS);
+        const ata = await getAssociatedTokenAddress(tokenAddress, wallet.publicKey);
+        const accountInfo = await getAccount(web3Connection, ata);
+        const mintInfo = await getMint(web3Connection, tokenAddress);
+        const decimals = mintInfo.decimals;
+        const balanceSpl = Number(accountInfo.amount) / (10 ** decimals);
+        const finalAmountToBuy = Math.floor(balanceSpl * (percent/100));
+
+        if (finalAmountToBuy <= 0) {
+            console.log(`Недостаточно токенов для продажи ${percent}% — рассчитано к продаже: ${finalAmountToBuy}`);
+            return;
+        }
+
+        await buyToken(privateKey, publicKey,finalAmountToBuy, false)
     } catch (error) {
         console.log(error);
     }
