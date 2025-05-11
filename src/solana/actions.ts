@@ -6,8 +6,8 @@ import fetch from 'node-fetch';  // Подключаем fetch
 
 const RPC_ENDPOINT = "https://proud-wider-mound.solana-mainnet.quiknode.pro/2a32ab5b5b591114ea720bd403447b2a80d58436/";
 const PUMPFUN_URL = 'https://pumpportal.fun/api/trade-local';
-const TOKEN_ADRESS = '4y9E3tJpGNzRr1592oWTPECgyp2VDSc1Bf3DqAm5FZsK';
-const POOL = "raydium";//"pump", "raydium", "pump-amm" or "auto"
+const TOKEN_ADRESS = 'CAFHsPLcmY4w8MtL1qT94pb5NHB6E1kgNEVKxbm1pump';
+const POOL = "pump";//"pump", "raydium", "pump-amm" or "auto"
 
 const web3Connection = new Connection(
     RPC_ENDPOINT,
@@ -124,10 +124,11 @@ export async function buyByPercentage(percent: number , privateKey: string, publ
         const mintInfo = await getMint(web3Connection, tokenAddress);
         const decimals = mintInfo.decimals;
         const balanceSpl = Number(accountInfo.amount) / (10 ** decimals);
+        console.log(balanceSpl);
         const finalAmountToBuy = Math.floor(balanceSpl * (percent/100));
 
         if (finalAmountToBuy <= 0) {
-            console.log(`Недостаточно токенов для продажи ${percent}% — рассчитано к продаже: ${finalAmountToBuy}`);
+            console.log(`Недостаточно токенов для покупки ${percent}% — рассчитано к покупке: ${finalAmountToBuy}`);
             return;
         }
 
