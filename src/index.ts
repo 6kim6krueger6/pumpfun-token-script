@@ -112,7 +112,7 @@ async function execute() {
 
             for (const wallet of selectedWallets) {
                 if (action === 'buy') {
-                    await buyToken(wallet.privateKey, wallet.publicKey, amount, true);
+                    await buyToken(wallet.privateKey, wallet.publicKey, amount);
                 } else {
                     await sellToken(wallet.privateKey, wallet.publicKey, amount);
                 }

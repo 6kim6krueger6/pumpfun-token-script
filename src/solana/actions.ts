@@ -14,7 +14,7 @@ const web3Connection = new Connection(
     'confirmed',
 );
 
-export async function buyToken(privateKey: string, publicKey: string, amount: number, isSol: boolean) {
+export async function buyToken(privateKey: string, publicKey: string, amount: number) {
     const response = await fetch(PUMPFUN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -22,7 +22,7 @@ export async function buyToken(privateKey: string, publicKey: string, amount: nu
             publicKey,
             action: "buy",
             mint: TOKEN_ADRESS,
-            denominatedInSol: isSol.toString(),
+            denominatedInSol: "true",
             amount,
             slippage: 10,
             priorityFee: 0.00001,
@@ -118,21 +118,11 @@ export async function sellByPercentage(percent: number, privateKey: string, publ
 export async function buyByPercentage(percent: number , privateKey: string, publicKey: string) {
     try {
         const wallet = Keypair.fromSecretKey(bs58.decode(privateKey));
-        const tokenAddress = new PublicKey(TOKEN_ADRESS);
-        const ata = await getAssociatedTokenAddress(tokenAddress, wallet.publicKey);
-        const accountInfo = await getAccount(web3Connection, ata);
-        const mintInfo = await getMint(web3Connection, tokenAddress);
-        const decimals = mintInfo.decimals;
-        const balanceSpl = Number(accountInfo.amount) / (10 ** decimals);
-        console.log(balanceSpl);
-        const finalAmountToBuy = Math.floor(balanceSpl * (percent/100));
-
-        if (finalAmountToBuy <= 0) {
-            console.log(`Недостаточно токенов для покупки ${percent}% — рассчитано к покупке: ${finalAmountToBuy}`);
-            return;
-        }
-
-        await buyToken(privateKey, publicKey,finalAmountToBuy, false)
+        const balanceSol = await web3Connection.getBalance(new PublicKey(wallet.publicKey));
+        console.log(`Sol balance: ${balanceSol / LAMPORTS_PER_SOL}`);
+        const finalAmountToBuy = (balanceSol / LAMPORTS_PER_SOL) * (percent/100);
+        console.log(`Final amount: ${finalAmountToBuy}`);
+        await buyToken(privateKey, publicKey,finalAmountToBuy)
     } catch (error) {
         console.log(error);
     }
